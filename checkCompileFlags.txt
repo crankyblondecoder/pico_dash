@@ -1,0 +1,1 @@
+readelf -w farm_box_pico.elf | grep producer | head -1
