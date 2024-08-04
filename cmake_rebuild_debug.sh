@@ -9,6 +9,6 @@ cd ./build/debug
 rm -rf *
 
 # This is absolutely vital otherwise cmake _doesn't_ use the cross compiler!
-export PICO_SDK_PATH=/home/stodas/devel/pico/pico-sdk/
+export PICO_SDK_PATH=../../pico-sdk/
 
 cmake -DCMAKE_BUILD_TYPE=Debug -DPICO_DEOPTIMIZED_DEBUG=1 ../../src/
