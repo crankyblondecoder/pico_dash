@@ -9,8 +9,10 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
+# Add extra source files here.
 add_executable(pico_dash
-	pico_dash.c)
+	pico_dash.c
+	X27_stepper_test.c)
 
 # Set to 1 to enable.
 pico_enable_stdio_usb(pico_dash 0)
