@@ -12,6 +12,7 @@ pico_sdk_init()
 # Add extra source files here.
 add_executable(pico_dash
 	pico_dash.c
+	pico_dash_gpio.c
 	pico_dash_latch.c
 	pico_dash_spi.c
 	X27_stepper_test.c)

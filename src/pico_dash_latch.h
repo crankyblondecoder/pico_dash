@@ -1,3 +1,6 @@
+#ifndef PICO_DASH_LATCH_H
+#define PICO_DASH_LATCH_H
+
 #include <string.h>
 
 #define MAX_LATCHED_INDEXES 64
@@ -32,3 +35,5 @@ int getLatchedDataIndex(const char* latchedDataIndexName);
  * For example, engine temperature might have 10 integer steps per degree celsius giving it a resolution of 0.1.
  */
 int getLatchedDataResolution(enum LatchedDataIndex index);
+
+#endif
