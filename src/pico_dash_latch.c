@@ -4,15 +4,15 @@ int getLatchedDataIndex(const char* latchedDataIndexName)
 {
 	int retVal = -1;
 
-	if(strncmp("ERM", latchedDataIndexName, MAX_LATCH_DATA_INDEX_NAME_SIZE))
+	if(!strncmp("ERM", latchedDataIndexName, MAX_LATCH_DATA_INDEX_NAME_SIZE))
 	{
 		retVal = ENGINE_RPM;
 	}
-	else if(strncmp("SKH", latchedDataIndexName, MAX_LATCH_DATA_INDEX_NAME_SIZE))
+	else if(!strncmp("SKH", latchedDataIndexName, MAX_LATCH_DATA_INDEX_NAME_SIZE))
 	{
 		retVal = SPEED_KMH;
 	}
-	else if(strncmp("ETC", latchedDataIndexName, MAX_LATCH_DATA_INDEX_NAME_SIZE))
+	else if(!strncmp("ETC", latchedDataIndexName, MAX_LATCH_DATA_INDEX_NAME_SIZE))
 	{
 		retVal = ENGINE_TEMP_C;
 	}

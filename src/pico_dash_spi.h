@@ -60,7 +60,7 @@ enum SpiCommand
 	 *
 	 *     Outgoing data payload:
 	 *                            1 byte that is the request id supplied from the incoming data payload.
-	 *                            32 bit integer (4 bytes). Byte order, little endian.
+	 *                            32 bit integer (4 bytes). Byte order, little endian (ie lowest order byte first).
 	 */
 	GET_LATCHED_DATA = 0x12
 };
@@ -69,6 +69,16 @@ enum SpiCommand
  * Start the SPI communication subsystem.
  * This will "bind" to the calling core and should only ever be run by one core.
  */
-void startSpiSubsystem();
+void spiStartSubsystem();
+
+/**
+ * Get whether the SPI master is idle.
+ */
+bool spiMasterIsIdle();
+
+/**
+ * Do any required SPI processing until there is none left.
+ */
+void spiProcessUntilIdle();
 
 #endif

@@ -19,7 +19,14 @@ int main()
 	initGpioIrqSubsystem();
 
 	// For now run the SPI comms on core 0.
-	startSpiSubsystem();
+	spiStartSubsystem();
 
-	// TODO ...
+	// Main processing loop.
+	while(1)
+	{
+		spiProcessUntilIdle();
+
+		// It doesn't matter if this returns immediately.
+		__wfe();
+	}
 }

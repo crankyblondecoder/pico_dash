@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define MAX_LATCHED_INDEXES 64
-#define MAX_LATCH_DATA_INDEX_NAME_SIZE 32
+#define MAX_LATCH_DATA_INDEX_NAME_SIZE 3
 
 // Anything to do with latching.
 
