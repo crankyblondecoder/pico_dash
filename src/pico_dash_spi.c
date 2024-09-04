@@ -72,6 +72,31 @@ void __not_in_flash_func(processSpiCommandResponse)()
 					}
 					break;
 
+				case GET_LATCHED_DATA_RESOLUTION:
+
+					if(inputBufferPosn == 3)
+					{
+						// Command is complete.
+
+						// Three bytes have to be output.
+						if(outputBufferWritePosn + 2 < MAX_OUTPUT_BUFFER_SIZE)
+						{
+							int latchedDataIndex = inputBuffer[2];
+							int latchedDataResolution = getLatchedDataResolution(latchedDataIndex);
+
+							// Request id.
+							outputBuffer[outputBufferWritePosn++] = inputBuffer[1];
+
+							// Latched data. Little endian byte order.
+							outputBuffer[outputBufferWritePosn++] = latchedDataResolution & 0xFF;
+							outputBuffer[outputBufferWritePosn++] = (latchedDataResolution >> 8) & 0xFF;
+						}
+
+						// Clear input buffer.
+						inputBufferPosn = 0;
+					}
+					break;
+
 				case GET_LATCHED_DATA:
 
 					if(inputBufferPosn == 3)
