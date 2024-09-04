@@ -17,7 +17,7 @@ int inputBufferPosn = 0;
 /** Output buffer to write out. */
 uint8_t outputBuffer[MAX_OUTPUT_BUFFER_SIZE];
 
-/** Position to read next output value from. */
+/** Position to read next output value from. Will be less than write position if data needs to be written. */
 int outputBufferReadPosn = 0;
 
 /** Position to write next output value from. */
@@ -34,9 +34,12 @@ void __not_in_flash_func(processSpiCommandResponse)()
 	// Stay in processing loop while master remains active and there are commands to process or output to write.
 	while(!spiMasterIdle && ((outputBufferWritePosn > outputBufferReadPosn) || spi0_hw -> sr & SPI_SSPSR_RNE_BITS))
 	{
-		while(spi0_hw -> sr & SPI_SSPSR_RNE_BITS)
+		// Flag to indicate no command was processed. Used to allow fallthrough to FIFO write.
+		bool noCommand = false;
+
+		while(spi0_hw -> sr & SPI_SSPSR_RNE_BITS && !noCommand)
 		{
-			// *** Read Commands ***
+			// *** Read Commands from SPI rx fifo ***
 
 			// NOTE: Output buffer overflow is discarded.
 
@@ -98,14 +101,25 @@ void __not_in_flash_func(processSpiCommandResponse)()
 
 				default:
 
-					// Bad command.
+					// Bad or no command.
 					inputBufferPosn = 0;
+					noCommand = true;
 			}
 		}
 
-		// *** Write output buffer. ***
+		// *** Write output buffer to SPI tx fifo. ***
 
-		// TODO ...
+		while(outputBufferReadPosn < outputBufferWritePosn && spi0_hw -> sr & SPI_SSPSR_TNF_BITS)
+		{
+			spi0_hw -> dr = outputBuffer[outputBufferReadPosn++];
+		}
+
+		// If all data was written to tx fifo, reset output buffer so filling can start again from beginning.
+		if(outputBufferReadPosn == outputBufferWritePosn)
+		{
+			outputBufferReadPosn = 0;
+			outputBufferWritePosn = 0;
+		}
 	}
 }
 
@@ -163,6 +177,6 @@ void spiProcessUntilIdle()
 	inputBufferPosn = 0;
 
 	// Clear the output buffer.
-	outputBufferPosn = 0;
-	outputBufferCount = 0;
+	outputBufferReadPosn = 0;
+	outputBufferWritePosn = 0;
 }

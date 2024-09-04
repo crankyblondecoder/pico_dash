@@ -51,6 +51,23 @@ enum SpiCommand
 	GET_LATCHED_DATA_INDEX = 0x11,
 
 	/**
+	 * Get latched data resolution. This maps the latched data value, in integer form, to the actual decimal value.
+	 * ie Latched data is transmitted as a 32bit integer and the resolution is required to convert that to a decimal value.
+	 * The resolution is the number of integer steps allocated per graduation.
+ 	 * For example, engine temperature might have 10 integer steps per degree celsius giving it a resolution of 0.1.
+	 *
+	 *     Incoming data payload:
+	 *                            1 byte command.
+	 *                            1 byte that is the request id.
+	 *                            1 byte that contains the latched data index to get the resolution for.
+	 *
+	 *     Outgoing data payload:
+	 *                            1 byte that is the request id supplied from the incoming data payload.
+	 *                            16 bit integer (2 bytes). Byte order, little endian (ie lowest order byte first).
+	 */
+	GET_LATCHED_DATA_RESOLUTION = 0x12,
+
+	/**
 	 * Get latched data.
 	 *
 	 *     Incoming data payload:
@@ -62,7 +79,7 @@ enum SpiCommand
 	 *                            1 byte that is the request id supplied from the incoming data payload.
 	 *                            32 bit integer (4 bytes). Byte order, little endian (ie lowest order byte first).
 	 */
-	GET_LATCHED_DATA = 0x12
+	GET_LATCHED_DATA = 0x13
 };
 
 /**
