@@ -134,9 +134,28 @@ void __not_in_flash_func(processSpiCommandResponse)()
 
 		// *** Write output buffer to SPI tx fifo. ***
 
-		while(outputBufferReadPosn < outputBufferWritePosn && spi0_hw -> sr & SPI_SSPSR_TNF_BITS)
+		// Disable transmit until output buffer is written but wait until transmit buffer is empty before doing that.
+		// Assume slave select state is taken into account when checking for SPI busy via CR1 SSE bit.
+		// Make sure that if master goes idle this wait is exited and the output is discarded.
+
+		while(spi_is_busy(spi0) && !spiMasterIdle)
 		{
-			spi0_hw -> dr = outputBuffer[outputBufferReadPosn++];
+		}
+
+		if(!spiMasterIdle)
+		{
+			// Unset CR1 SSE bit to disable SPI.
+			// SPI_SSPCR1_SSE_BITS is a bit mask.
+
+			spi0_hw -> cr1 &= ~SPI_SSPCR1_SSE_BITS;
+
+			while(outputBufferReadPosn < outputBufferWritePosn && spi0_hw -> sr & SPI_SSPSR_TNF_BITS)
+			{
+				spi0_hw -> dr = outputBuffer[outputBufferReadPosn++];
+			}
+
+			// Re-enable SPI.
+			spi0_hw -> cr1 |= SPI_SSPCR1_SSE_BITS;
 		}
 
 		// If all data was written to tx fifo, reset output buffer so filling can start again from beginning.
@@ -155,11 +174,13 @@ void __not_in_flash_func(spiGpioIrqCallback)(uint gpio, uint32_t event_mask)
 	if(event_mask & GPIO_IRQ_EDGE_RISE)
 	{
 		spiMasterIdle = false;
+		gpio_put(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN, true);
 	}
 
 	if(event_mask & GPIO_IRQ_EDGE_FALL)
 	{
 		spiMasterIdle = true;
+		gpio_put(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN, false);
 	}
 }
 
@@ -170,6 +191,11 @@ void spiStartSubsystem()
 	// Setup the SPI pins.
 	spi_init(spi0, SPI_BAUD);
     spi_set_slave(spi0, true);
+
+	// Set the on the wire format.
+	// Motorola SPI Format with SPO=0, SPH=1.
+	spi_set_format(spi0, 8, SPI_CPOL_0, SPI_CPHA_1, SPI_MSB_FIRST);
+
     gpio_set_function(SPI_TX_GPIO_PIN, GPIO_FUNC_SPI);
 	gpio_set_function(SPI_RX_GPIO_PIN, GPIO_FUNC_SPI);
 	gpio_set_function(SPI_SCK_GPIO_PIN, GPIO_FUNC_SPI);
@@ -178,6 +204,10 @@ void spiStartSubsystem()
 	// Setup GPIO pin so that master can trigger this slave to read/write.
 	gpio_init(SPI_MASTER_CONTROL_GPIO_PIN);
 	gpio_set_dir(SPI_MASTER_CONTROL_GPIO_PIN, GPIO_IN);
+
+	// Setup GPIO pin for LED to indicate master active.
+	gpio_init(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN);
+	gpio_set_dir(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN, GPIO_OUT);
 
 	// Setup the gpio callback. This doesn't set the irq event though.
 	setGpioIrqCallBack(SPI_MASTER_CONTROL_GPIO_PIN, spiGpioIrqCallback);

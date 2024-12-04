@@ -24,4 +24,4 @@ pico_enable_stdio_uart(pico_dash 1)
 # create map/bin/hex file etc.
 pico_add_extra_outputs(pico_dash)
 
-target_link_libraries(pico_dash pico_stdlib)
+target_link_libraries(pico_dash pico_stdlib hardware_spi hardware_sync)

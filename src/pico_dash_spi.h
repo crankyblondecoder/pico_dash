@@ -17,6 +17,8 @@
  */
 #define SPI_MASTER_CONTROL_GPIO_PIN 20
 
+#define SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN 25
+
 /** SPI baud rate. As a slave, not sure this even matters? */
 #define SPI_BAUD 1000000
 
@@ -46,14 +48,15 @@ enum SpiCommand
 	 *
 	 *     Outgoing data payload:
 	 *                            1 byte that is the request id supplied from the incoming data payload.
-	 *                            1 byte that contains the latched data index.
+	 *                            1 byte that contains the latched data index. -1 Indicates an error condition.
 	 */
 	GET_LATCHED_DATA_INDEX = 0x11,
 
 	/**
 	 * Get latched data resolution. This maps the latched data value, in integer form, to the actual decimal value.
 	 * ie Latched data is transmitted as a 32bit integer and the resolution is required to convert that to a decimal value.
-	 * The resolution is the number of integer steps allocated per graduation.
+	 * The resolution is the number of integer steps allocated per graduation. ie The integer latched data value is converted
+	 * to a double and divided by the resolution (after also being converted to a double).
  	 * For example, engine temperature might have 10 integer steps per degree celsius giving it a resolution of 0.1.
 	 *
 	 *     Incoming data payload:

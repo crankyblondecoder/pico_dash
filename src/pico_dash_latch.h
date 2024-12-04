@@ -10,16 +10,17 @@
 
 /**
  * Indexes used to store and retrieve latched data.
+ * @note Index 0 is never used because SPI comms needs to avoid zeros if possible.
  */
 enum LatchedDataIndex
 {
 	/** Engine RPM. */
-	ENGINE_RPM,
+	ENGINE_RPM = 1,
 
-	/** Speed km/h */
+	/** Speed km/h. */
 	SPEED_KMH,
 
-	/** Engine temperature degrees celsius*/
+	/** Engine temperature degrees celsius. */
 	ENGINE_TEMP_C
 };
 

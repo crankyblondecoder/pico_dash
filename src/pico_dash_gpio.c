@@ -41,7 +41,7 @@ void initGpioIrqSubsystem()
 	core_irq_enabled[1] = false;
 }
 
-void setGpioCallBack(uint gpio, gpio_irq_callback_t callback)
+void setGpioIrqCallBack(uint gpio, gpio_irq_callback_t callback)
 {
 	uint curCoreNum = get_core_num();
 

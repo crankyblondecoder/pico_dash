@@ -2,7 +2,6 @@
 #define PICO_DASH_GPIO_H
 
 #include "hardware/gpio.h"
-#include "platform.h"
 
 // Contains any code to shared GPIO resources like interupts.
 
@@ -15,8 +14,8 @@
 void initGpioIrqSubsystem();
 
 /**
- * Set a specific GPIO callback for the current core.
- * @note This doesn't enable the GPIO irq. That must be done with gpio_set_irq_enabled.
+ * Set a specific GPIO IRQ callback for the current core.
+ * @note This doesn't enable the GPIO IRQ. That must be done with gpio_set_irq_enabled.
  */
 void setGpioIrqCallBack(uint gpio, gpio_irq_callback_t callback);
 

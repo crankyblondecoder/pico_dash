@@ -1,5 +1,6 @@
 // #include "pico/stdlib.h"
 #include "hardware/gpio.h"
+#include "hardware/sync.h"
 #include "pico/time.h"
 
 #include "pico_dash_gpio.h"
