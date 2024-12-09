@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "time.h"
 
 #include "pico_dash_gpio.h"
@@ -205,15 +207,21 @@ void spiStartSubsystem()
 	gpio_init(SPI_MASTER_CONTROL_GPIO_PIN);
 	gpio_set_dir(SPI_MASTER_CONTROL_GPIO_PIN, GPIO_IN);
 
+	spiMasterIdle = gpio_get(SPI_MASTER_CONTROL_GPIO_PIN);
+
 	// Setup GPIO pin for LED to indicate master active.
 	gpio_init(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN);
 	gpio_set_dir(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN, GPIO_OUT);
+
+	gpio_put(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN, spiMasterIdle);
 
 	// Setup the gpio callback. This doesn't set the irq event though.
 	setGpioIrqCallBack(SPI_MASTER_CONTROL_GPIO_PIN, spiGpioIrqCallback);
 
 	// Enable the IRQ for the gpio pin.
 	gpio_set_irq_enabled(SPI_MASTER_CONTROL_GPIO_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+
+	printf("SPI subsystem started.\n");
 }
 
 bool __not_in_flash_func(spiMasterIsIdle)()

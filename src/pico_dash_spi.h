@@ -19,8 +19,11 @@
 
 #define SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN 25
 
-/** SPI baud rate. As a slave, not sure this even matters? */
-#define SPI_BAUD 1000000
+/**
+ * SPI baud rate. My understanding is that, as a slave, this specifies the maximum baud rate that master can use,
+ * with the minimum being the system clock rate divided by (254 x 256).
+ */
+#define SPI_BAUD 8000000
 
 /** GPIO pin for SPI TX (transmit). */
 #define SPI_TX_GPIO_PIN 19

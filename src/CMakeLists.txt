@@ -18,8 +18,8 @@ add_executable(pico_dash
 	X27_stepper_test.c)
 
 # Set to 1 to enable.
-pico_enable_stdio_usb(pico_dash 0)
-pico_enable_stdio_uart(pico_dash 1)
+pico_enable_stdio_usb(pico_dash 1)
+pico_enable_stdio_uart(pico_dash 0)
 
 # create map/bin/hex file etc.
 pico_add_extra_outputs(pico_dash)

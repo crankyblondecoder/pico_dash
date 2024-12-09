@@ -1,4 +1,5 @@
-// #include "pico/stdlib.h"
+#include "pico/stdlib.h"
+#include <stdio.h>
 #include "hardware/gpio.h"
 #include "hardware/sync.h"
 #include "pico/time.h"
@@ -16,6 +17,9 @@ int latchedData[MAX_LATCHED_INDEXES];
  */
 int main()
 {
+	// Must happen for serial stdout to work.
+	stdio_init_all();
+
 	// Must be done before SPI start.
 	initGpioIrqSubsystem();
 
