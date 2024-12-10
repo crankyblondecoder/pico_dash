@@ -10,6 +10,8 @@
 
 extern int latchedData[];
 
+extern bool debugMsgActive;
+
 /** Input buffer to read into. */
 uint8_t inputBuffer[6];
 
@@ -45,8 +47,11 @@ void __not_in_flash_func(processSpiCommandResponse)()
 
 			// NOTE: Output buffer overflow is discarded.
 
+			// Get rx data from dr register.
+			uint32_t dr = spi0_hw -> dr;
+
 			// Assume input buffer is incomplete for a command at the beginning of the loop.
-			inputBuffer[inputBufferPosn++] = spi0_hw -> dr;
+			inputBuffer[inputBufferPosn++] = dr;
 
 			switch(inputBuffer[0])
 			{
@@ -55,6 +60,7 @@ void __not_in_flash_func(processSpiCommandResponse)()
 					if(inputBufferPosn == 5)
 					{
 						// Get latch data index command is complete.
+						if(debugMsgActive) printf("Proc GET_LATCHED_DATA_INDEX\n");
 
 						// Two bytes have to be output.
 						if(outputBufferWritePosn + 1 < MAX_OUTPUT_BUFFER_SIZE)
@@ -79,6 +85,7 @@ void __not_in_flash_func(processSpiCommandResponse)()
 					if(inputBufferPosn == 3)
 					{
 						// Command is complete.
+						if(debugMsgActive) printf("Proc GET_LATCHED_DATA_RESOLUTION\n");
 
 						// Three bytes have to be output.
 						if(outputBufferWritePosn + 2 < MAX_OUTPUT_BUFFER_SIZE)
@@ -104,6 +111,7 @@ void __not_in_flash_func(processSpiCommandResponse)()
 					if(inputBufferPosn == 3)
 					{
 						// Command is complete.
+						if(debugMsgActive) printf("Proc GET_LATCHED_DATA\n");
 
 						// Five bytes have to be output.
 						if(outputBufferWritePosn + 4 < MAX_OUTPUT_BUFFER_SIZE)
@@ -177,12 +185,15 @@ void __not_in_flash_func(spiGpioIrqCallback)(uint gpio, uint32_t event_mask)
 	{
 		spiMasterIdle = false;
 		gpio_put(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN, true);
-	}
 
-	if(event_mask & GPIO_IRQ_EDGE_FALL)
+		if(debugMsgActive) printf("SPI master is active.\n");
+
+	} else if(event_mask & GPIO_IRQ_EDGE_FALL)
 	{
 		spiMasterIdle = true;
 		gpio_put(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN, false);
+
+		if(debugMsgActive) printf("SPI master is inactive.\n");
 	}
 }
 
@@ -207,7 +218,7 @@ void spiStartSubsystem()
 	gpio_init(SPI_MASTER_CONTROL_GPIO_PIN);
 	gpio_set_dir(SPI_MASTER_CONTROL_GPIO_PIN, GPIO_IN);
 
-	spiMasterIdle = gpio_get(SPI_MASTER_CONTROL_GPIO_PIN);
+	spiMasterIdle = !gpio_get(SPI_MASTER_CONTROL_GPIO_PIN);
 
 	// Setup GPIO pin for LED to indicate master active.
 	gpio_init(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN);
@@ -220,8 +231,6 @@ void spiStartSubsystem()
 
 	// Enable the IRQ for the gpio pin.
 	gpio_set_irq_enabled(SPI_MASTER_CONTROL_GPIO_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
-
-	printf("SPI subsystem started.\n");
 }
 
 bool __not_in_flash_func(spiMasterIsIdle)()
@@ -242,4 +251,9 @@ void spiProcessUntilIdle()
 	// Clear the output buffer.
 	outputBufferReadPosn = 0;
 	outputBufferWritePosn = 0;
+}
+
+bool spiProcReq()
+{
+	return !spiMasterIdle;
 }

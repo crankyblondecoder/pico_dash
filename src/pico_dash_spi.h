@@ -104,4 +104,9 @@ bool spiMasterIsIdle();
  */
 void spiProcessUntilIdle();
 
+/**
+ * SPI processing is required.
+ */
+bool spiProcReq();
+
 #endif
