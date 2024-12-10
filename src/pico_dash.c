@@ -3,7 +3,7 @@
 #include "hardware/gpio.h"
 #include "hardware/sync.h"
 #include "pico/time.h"
-#include "intctrl.h"
+#include "hardware/regs/intctrl.h"
 
 #include "pico_dash_gpio.h"
 #include "pico_dash_latch.h"
@@ -20,11 +20,11 @@ bool debugMsgActive = true;
  */
 int main()
 {
-	// TODO ... Make sure disabled interrupts wake up WFE via the SEVONPEND flag of the SCR register.
+	// Make sure disabled interrupts wake up WFE via the SEVONPEND flag of the SCR register.
 	// See "M0PLUS: SCR Register" in RP2040 Datasheet.
 	// SEVONPEND needs to be set. This allows WFE to wake up on pending interrupt even if disabled.
-	io_rw_32* scrRegAddr = (io_rw_32*)(PPB_BASE + 0xed10);
-	hw_set_bits(scrRegAddr, 0x10);
+	uint32_t* scrRegAddr = (uint32_t*)(PPB_BASE + 0xed10);
+	*scrRegAddr |= 0x10;
 
 	// Must happen for serial stdout to work.
 	stdio_init_all();
