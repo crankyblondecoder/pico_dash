@@ -139,6 +139,11 @@ void __not_in_flash_func(processSpiCommandResponse)()
 					// Bad or no command.
 					inputBufferPosn = 0;
 					noCommand = true;
+
+					if(inputBuffer[0] != 0)
+					{
+						if(debugMsgActive) ("Unknown SPI command 0x%X", inputBuffer[0]);
+					}
 			}
 		}
 
@@ -224,7 +229,7 @@ void spiStartSubsystem()
 	gpio_init(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN);
 	gpio_set_dir(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN, GPIO_OUT);
 
-	gpio_put(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN, spiMasterIdle);
+	gpio_put(SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN, !spiMasterIdle);
 
 	// Setup the gpio callback. This doesn't set the irq event though.
 	setGpioIrqCallBack(SPI_MASTER_CONTROL_GPIO_PIN, spiGpioIrqCallback);
