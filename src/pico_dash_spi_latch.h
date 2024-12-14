@@ -8,16 +8,25 @@
 // spi0 Is used exclusively.
 
 /**
- * The GPIO pin to use for the SPI master to indicate write/read has occurred. This is _not_ part of the SPI subsystem.
+ * The GPIO pin to use for the SPI master for latched data to indicate a command is active and either already has been or is
+ * currently being written.
+ * @note This is _not_ part of the SPI subsystem.
  *
  * Edge rise: Master has completed write of a command to the SPI bus.
  * Edge fall: Master has completed reading the command result from the SPI bus. This should always result in the SPI state
  *            being reset so that the FIFO's are clear. Hopefully this will make the comms protocol reasonably resistent to
  *            SPI transfer failure.
  */
-#define SPI_MASTER_CONTROL_GPIO_PIN 20
+#define SPI_LATCH_COMMAND_ACTIVE_GPIO_PIN 20
 
-#define SPI_MASTER_CONTROL_ACTIVE_LED_GPIO_PIN 25
+#define SPI_LATCH_COMMAND_ACTIVE_LED_GPIO_PIN 25
+
+/**
+ * The GPIO pin to use to indicate to the SPI master that this Pico is ready for a command.
+ * This pin going high indicates this Pico is ready.
+ * @note This is _not_ part of the SPI subsystem.
+ */
+#define SPI_LATCH_READY_FOR_COMMAND_GPIO_PIN 21
 
 /**
  * SPI baud rate. My understanding is that, as a slave, this specifies the maximum baud rate that master can use,
@@ -38,6 +47,10 @@
 /**
  * Commands that a SPI master can issue.
  * SPI commands are single char (byte).
+ * Using high numbers because they are less likely to collide with data that follows the command. This gives an element of
+ * robustness to detecting the beginning of a command.
+ * @note Do _not_ allow request ID's to overlap command values numerically.
+ * @note If a bad command is encountered the value 0xFF is returned in the first byte.
  */
 enum SpiCommand
 {
@@ -53,7 +66,7 @@ enum SpiCommand
 	 *                            1 byte that is the request id supplied from the incoming data payload.
 	 *                            1 byte that contains the latched data index. -1 Indicates an error condition.
 	 */
-	GET_LATCHED_DATA_INDEX = 0x11,
+	GET_LATCHED_DATA_INDEX = 0xF1,
 
 	/**
 	 * Get latched data resolution. This maps the latched data value, in integer form, to the actual decimal value.
@@ -71,7 +84,7 @@ enum SpiCommand
 	 *                            1 byte that is the request id supplied from the incoming data payload.
 	 *                            16 bit integer (2 bytes). Byte order, little endian (ie lowest order byte first).
 	 */
-	GET_LATCHED_DATA_RESOLUTION = 0x12,
+	GET_LATCHED_DATA_RESOLUTION = 0xF2,
 
 	/**
 	 * Get latched data.
@@ -85,28 +98,23 @@ enum SpiCommand
 	 *                            1 byte that is the request id supplied from the incoming data payload.
 	 *                            32 bit integer (4 bytes). Byte order, little endian (ie lowest order byte first).
 	 */
-	GET_LATCHED_DATA = 0x13
+	GET_LATCHED_DATA = 0xF3
 };
 
 /**
- * Start the SPI communication subsystem.
+ * Start the SPI latched data communication subsystem.
  * This will "bind" to the calling core and should only ever be run by one core.
  */
-void spiStartSubsystem();
+void spiLatchStartSubsystem();
 
 /**
- * Get whether the SPI master is idle.
+ * Do any required SPI processing of latched data commands until there is none left.
  */
-bool spiMasterIsIdle();
+void spiLatchProcessUntilIdle();
 
 /**
- * Do any required SPI processing until there is none left.
+ * SPI processing of latched data is required.
  */
-void spiProcessUntilIdle();
-
-/**
- * SPI processing is required.
- */
-bool spiProcReq();
+bool spiLatchProcReq();
 
 #endif

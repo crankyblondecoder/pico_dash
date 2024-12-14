@@ -7,7 +7,7 @@
 
 #include "pico_dash_gpio.h"
 #include "pico_dash_latch.h"
-#include "pico_dash_spi.h"
+#include "pico_dash_spi_latch.h"
 
 /** Currently latched data. */
 int latchedData[MAX_LATCHED_INDEXES];
@@ -33,12 +33,12 @@ int main()
 	initGpioIrqSubsystem();
 
 	// For now run the SPI comms on core 0.
-	spiStartSubsystem();
+	spiLatchStartSubsystem();
 
 	// Main processing loop.
 	while(1)
 	{
-		spiProcessUntilIdle();
+		spiLatchProcessUntilIdle();
 
 		// Disable GPIO interrupts so that SPI master inactive can't be flipped to active before it can trigger WFE
 		// to be exited.
@@ -49,7 +49,7 @@ int main()
 		// IO_IRQ_BANK0 (GPIO)
 		irq_set_enabled(IO_IRQ_BANK0, false);
 
-		if(!spiProcReq())
+		if(!spiLatchProcReq())
 		{
 			// Wait for SEV event from GPIO interrupt pending.
 			// It doesn't matter if this returns immediately.
