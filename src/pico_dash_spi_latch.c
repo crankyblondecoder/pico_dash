@@ -122,7 +122,7 @@ void __not_in_flash_func(processSpiCommandResponse)()
 						inputBuffer[5] = 0;
 
 						// Return latched data index.
-						outputBuffer[outputBufferWritePosn++] = getLatchedDataIndex(inputBuffer + 2);
+						outputBuffer[outputBufferWritePosn++] = getLatchedDataIndex(inputBuffer + 1);
 					}
 					break;
 
@@ -135,7 +135,7 @@ void __not_in_flash_func(processSpiCommandResponse)()
 
 						// Three bytes have to be output.
 
-						int latchedDataIndex = inputBuffer[2];
+						int latchedDataIndex = inputBuffer[1];
 						int latchedDataResolution = getLatchedDataResolution(latchedDataIndex);
 
 						// Latched data. Little endian byte order.
@@ -153,7 +153,7 @@ void __not_in_flash_func(processSpiCommandResponse)()
 
 						// Five bytes have to be output.
 
-						int latchedDataIndex = inputBuffer[2];
+						int latchedDataIndex = inputBuffer[1];
 						int latchedDataVal = latchedData[latchedDataIndex];
 
 						// Latched data. Little endian byte order.
