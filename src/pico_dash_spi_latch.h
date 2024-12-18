@@ -28,6 +28,9 @@
  */
 #define SPI_LATCH_READY_FOR_COMMAND_GPIO_PIN 21
 
+/** The command/response frame size, in bytes. */
+#define SPI_COMMAND_RESPONSE_FRAME_SIZE 8
+
 /**
  * SPI baud rate. My understanding is that, as a slave, this specifies the maximum baud rate that master can use,
  * with the minimum being the system clock rate divided by (254 x 256).

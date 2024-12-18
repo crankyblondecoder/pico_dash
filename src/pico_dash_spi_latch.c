@@ -1,25 +1,23 @@
 #include <stdio.h>
 
-#include "time.h"
+#include "pico/time.h"
 
 #include "pico_dash_gpio.h"
 #include "pico_dash_spi_latch.h"
 #include "pico_dash_latch.h"
-
-#define MAX_OUTPUT_BUFFER_SIZE 128
 
 extern int latchedData[];
 
 extern bool debugMsgActive;
 
 /** Input buffer to read into. */
-uint8_t inputBuffer[6];
+uint8_t inputBuffer[SPI_COMMAND_RESPONSE_FRAME_SIZE];
 
 /** Current position to read into. */
 int inputBufferPosn = 0;
 
 /** Output buffer to write out. */
-uint8_t outputBuffer[MAX_OUTPUT_BUFFER_SIZE];
+uint8_t outputBuffer[SPI_COMMAND_RESPONSE_FRAME_SIZE];
 
 /** Position to read next output value from. Will be less than write position if data needs to be written. */
 int outputBufferReadPosn = 0;
@@ -53,168 +51,172 @@ void __not_in_flash_func(processSpiCommandResponse)()
 
 	while(spiLatchCommandActive)
 	{
-		// Read a command from the SPI rx fifo. Assume rx data is padded with 0's while master is waiting for a reply
-		// to the command.
+		// Clear the rx fifo. Assume RFC (ready for command) is inactive and that causes the master to stall sending a
+		// command.
+		while(spi0_hw -> sr & SPI_SSPSR_RNE_BITS)
+		{
+			// Get rx fifo data from dr register.
+			uint32_t dr = spi0_hw -> dr;
+		}
 
-		// Clear input buffer.
+		// Indicate ready for command.
+		setReadyForCommand(true);
+
+		// Read a command frame from the SPI rx fifo. Assume rx data is padded with 0's while master is waiting for a reply
+		// to the command.
 		inputBufferPosn = 0;
 
-		// Clear the output buffer.
-		outputBufferReadPosn = 0;
-		outputBufferWritePosn = 0;
+		// Used for timeout of read command.
+		absolute_time_t timeoutTime = make_timeout_time_ms(1);
 
-		bool commandComplete = false;
+		bool timeout = false;
 
-		while(!commandComplete && spiLatchCommandActive)
+		while(spiLatchCommandActive && inputBufferPosn < SPI_COMMAND_RESPONSE_FRAME_SIZE && !timeout)
 		{
+			// Note: This loop could potentially deadlock with the master if it thinks it has sent the frame but the Pico
+			//       hasn't received all the data.
+
 			if(spi0_hw -> sr & SPI_SSPSR_RNE_BITS)
 			{
 				// Get rx fifo data from dr register.
-				uint32_t dr = spi0_hw -> dr;
-
-				// Assume input buffer is incomplete for a command at the beginning of the loop.
-
-				// While looking for command code, zero is considered "filler" data.
-				// First position in input buffer is always the command code.
-				if(inputBufferPosn > 0 || dr > 0)
-				{
-					inputBuffer[inputBufferPosn++] = dr;
-
-					switch(inputBuffer[0])
-					{
-						case GET_LATCHED_DATA_INDEX:
-
-							if(inputBufferPosn == 5)
-							{
-								// Get latch data index command is complete.
-								if(debugMsgActive) printf("Proc GET_LATCHED_DATA_INDEX\n");
-
-								// Two bytes have to be output.
-
-								// Null terminate the input string.
-								inputBuffer[5] = 0;
-
-								// Request id.
-								outputBuffer[outputBufferWritePosn++] = inputBuffer[1];
-
-								// Return latched data index.
-								outputBuffer[outputBufferWritePosn++] = getLatchedDataIndex(inputBuffer + 2);
-
-								commandComplete = true;
-							}
-							break;
-
-						case GET_LATCHED_DATA_RESOLUTION:
-
-							if(inputBufferPosn == 3)
-							{
-								// Command is complete.
-								if(debugMsgActive) printf("Proc GET_LATCHED_DATA_RESOLUTION\n");
-
-								// Three bytes have to be output.
-
-								int latchedDataIndex = inputBuffer[2];
-								int latchedDataResolution = getLatchedDataResolution(latchedDataIndex);
-
-								// Request id.
-								outputBuffer[outputBufferWritePosn++] = inputBuffer[1];
-
-								// Latched data. Little endian byte order.
-								outputBuffer[outputBufferWritePosn++] = latchedDataResolution & 0xFF;
-								outputBuffer[outputBufferWritePosn++] = (latchedDataResolution >> 8) & 0xFF;
-
-								commandComplete = true;
-							}
-							break;
-
-						case GET_LATCHED_DATA:
-
-							if(inputBufferPosn == 3)
-							{
-								// Command is complete.
-								if(debugMsgActive) printf("Proc GET_LATCHED_DATA\n");
-
-								// Five bytes have to be output.
-
-								int latchedDataIndex = inputBuffer[2];
-								int latchedDataVal = latchedData[latchedDataIndex];
-
-								// Request id.
-								outputBuffer[outputBufferWritePosn++] = inputBuffer[1];
-
-								// Latched data. Little endian byte order.
-								outputBuffer[outputBufferWritePosn++] = latchedDataVal & 0xFF;
-								outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 8) & 0xFF;
-								outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 16) & 0xFF;
-								outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 24) & 0xFF;
-
-								commandComplete = true;
-							}
-							break;
-
-						default:
-
-							if(inputBuffer[0] != 0)
-							{
-								// Bad command.
-								outputBuffer[0] = 0xFF;
-
-								commandComplete = true;
-
-								if(debugMsgActive) ("Unknown SPI command 0x%X", inputBuffer[0]);
-							}
-							else
-							{
-								// No command. Just reset input buffer and try reading more data.
-								inputBufferPosn = 0;
-							}
-					}
-				}
+				inputBuffer[inputBufferPosn++] = spi0_hw -> dr;
+			}
+			else
+			{
+				// Check for timeout.
+				timeout = get_absolute_time() > timeoutTime;
 			}
 		}
 
-		setReadyForCommand(!commandComplete);
+		if(debugMsgActive && timeout) printf("Timeout during latch command read.");
 
-		if(commandComplete)
+		// Always reset output buffer read position.
+		outputBufferReadPosn = 0;
+
+		bool commandReplyReady = false;
+
+		if(!timeout && inputBufferPosn == SPI_COMMAND_RESPONSE_FRAME_SIZE)
 		{
-			// Write output buffer to SPI tx fifo.
+			// Command frame was read.
 
-			// Disable transmit until output buffer is written but wait until transmit buffer is empty before doing that.
-			// This is so that the command replay is contiguous. A try counter is used so that this loop doesn't cause a lockup.
+			// Clear the output buffer.
+			outputBufferWritePosn = SPI_COMMAND_RESPONSE_FRAME_SIZE;
+			while(outputBufferWritePosn-- > 0) outputBuffer[outputBufferWritePosn] = 0;
 
-			int tryCounter = 1024;
+			// As default, put the command back into the first position in the return buffer.
+			outputBuffer[outputBufferWritePosn++] = inputBuffer[0];
 
-			while(!(spi0_hw -> sr & SPI_SSPSR_TFE_BITS) && spiLatchCommandActive && tryCounter)
+			// Processs the command.
+			switch(inputBuffer[0])
 			{
-				tryCounter--;
+				case GET_LATCHED_DATA_INDEX:
+
+					if(inputBufferPosn == 5)
+					{
+						// Get latch data index command is complete.
+						if(debugMsgActive) printf("Proc cmd GET_LATCHED_DATA_INDEX\n");
+
+						// Two bytes have to be output.
+
+						// Null terminate the input string.
+						inputBuffer[5] = 0;
+
+						// Return latched data index.
+						outputBuffer[outputBufferWritePosn++] = getLatchedDataIndex(inputBuffer + 2);
+					}
+					break;
+
+				case GET_LATCHED_DATA_RESOLUTION:
+
+					if(inputBufferPosn == 3)
+					{
+						// Command is complete.
+						if(debugMsgActive) printf("Proc cmd GET_LATCHED_DATA_RESOLUTION\n");
+
+						// Three bytes have to be output.
+
+						int latchedDataIndex = inputBuffer[2];
+						int latchedDataResolution = getLatchedDataResolution(latchedDataIndex);
+
+						// Latched data. Little endian byte order.
+						outputBuffer[outputBufferWritePosn++] = latchedDataResolution & 0xFF;
+						outputBuffer[outputBufferWritePosn++] = (latchedDataResolution >> 8) & 0xFF;
+					}
+					break;
+
+				case GET_LATCHED_DATA:
+
+					if(inputBufferPosn == 3)
+					{
+						// Command is complete.
+						if(debugMsgActive) printf("Proc cmd GET_LATCHED_DATA\n");
+
+						// Five bytes have to be output.
+
+						int latchedDataIndex = inputBuffer[2];
+						int latchedDataVal = latchedData[latchedDataIndex];
+
+						// Latched data. Little endian byte order.
+						outputBuffer[outputBufferWritePosn++] = latchedDataVal & 0xFF;
+						outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 8) & 0xFF;
+						outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 16) & 0xFF;
+						outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 24) & 0xFF;
+					}
+					break;
+
+				default:
+
+					// Bad command.
+
+					outputBufferWritePosn = 0;
+					while(outputBufferWritePosn++ < SPI_COMMAND_RESPONSE_FRAME_SIZE) outputBuffer[outputBufferWritePosn] = 0xFF;
+
+					if(debugMsgActive) ("Unknown SPI command 0x%X", inputBuffer[0]);
 			}
 
-			if(spiLatchCommandActive && tryCounter)
+			commandReplyReady = true;
+		}
+		else
+		{
+			// Command aborted. Wait for next command cycle.
+			setReadyForCommand(false);
+		}
+
+		if(commandReplyReady)
+		{
+			if(debugMsgActive && !(spi0_hw -> sr & SPI_SSPSR_TFE_BITS))
 			{
-				// Unset CR1 SSE bit to disable SPI.
-				// SPI_SSPCR1_SSE_BITS is a bit mask.
+				printf("Warning: Latch command transmit FIFO was not empty.");
+			}
 
-				spi0_hw -> cr1 &= ~SPI_SSPCR1_SSE_BITS;
+			// Write as much as possible from output buffer to SPI tx fifo.
+			while(outputBufferReadPosn < SPI_COMMAND_RESPONSE_FRAME_SIZE && spiLatchCommandActive &&
+				spi0_hw -> sr & SPI_SSPSR_TNF_BITS)
+			{
+				spi0_hw -> dr = outputBuffer[outputBufferReadPosn++];
+			}
 
-				while(outputBufferReadPosn < outputBufferWritePosn)
+			// This should indicate to the master that it can start to read the command response.
+			setReadyForCommand(false);
+
+			timeoutTime = make_timeout_time_ms(1);
+
+			// Write any remaining data from output buffer to SPI tx fifo.
+			while(outputBufferReadPosn < SPI_COMMAND_RESPONSE_FRAME_SIZE && spiLatchCommandActive && !timeout)
+			{
+				if(spi0_hw -> sr & SPI_SSPSR_TNF_BITS)
 				{
 					spi0_hw -> dr = outputBuffer[outputBufferReadPosn++];
 				}
-
-				// Re-enable SPI.
-				spi0_hw -> cr1 |= SPI_SSPCR1_SSE_BITS;
+				else
+				{
+					// Check for timeout.
+					timeout = get_absolute_time() > timeoutTime;
+				}
 			}
 
-			// Clear the rx fifo from the command output being sent.
-			// Note: The master will have to delay for long enough while this is happening so that new commands don't get discarded.
-			while(spi0_hw -> sr & SPI_SSPSR_RNE_BITS)
-			{
-				// Get rx fifo data from dr register.
-				uint32_t dr = spi0_hw -> dr;
-			}
+			if(debugMsgActive && timeout) printf("Timeout during latch command reply.");
 		}
-
-		setReadyForCommand(true);
 	}
 }
 
@@ -269,7 +271,7 @@ void spiLatchStartSubsystem()
 	// Setup GPIO pin to indicate to SPI master that this pico is ready for a command.
 	gpio_init(SPI_LATCH_READY_FOR_COMMAND_GPIO_PIN);
 	gpio_set_dir(SPI_LATCH_READY_FOR_COMMAND_GPIO_PIN, GPIO_OUT);
-	gpio_put(SPI_LATCH_READY_FOR_COMMAND_GPIO_PIN, true);
+	gpio_put(SPI_LATCH_READY_FOR_COMMAND_GPIO_PIN, false);
 
 	// Setup the gpio callback. This doesn't set the irq event though.
 	setGpioIrqCallBack(SPI_LATCH_COMMAND_ACTIVE_GPIO_PIN, spiGpioIrqCallback);
