@@ -38,7 +38,7 @@ int main()
 	// Main processing loop.
 	while(1)
 	{
-		spiLatchProcessUntilIdle();
+		spiLatchProcess();
 
 		// Disable GPIO interrupts so that SPI master inactive can't be flipped to active before it can trigger WFE
 		// to be exited.

@@ -111,9 +111,9 @@ enum SpiCommand
 void spiLatchStartSubsystem();
 
 /**
- * Do any required SPI processing of latched data commands until there is none left.
+ * Do any required SPI processing of latched data commands.
  */
-void spiLatchProcessUntilIdle();
+void spiLatchProcess();
 
 /**
  * SPI processing of latched data is required.
