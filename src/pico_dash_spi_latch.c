@@ -106,62 +106,58 @@ void __not_in_flash_func(processSpiCommandResponse)()
 			// As default, put the command back into the first position in the return buffer.
 			outputBuffer[outputBufferWritePosn++] = inputBuffer[0];
 
+			int latchedDataIndex;
+
 			// Processs the command.
 			switch(inputBuffer[0])
 			{
 				case GET_LATCHED_DATA_INDEX:
 
-					if(inputBufferPosn == 5)
-					{
-						// Get latch data index command is complete.
-						if(debugMsgActive) printf("Proc cmd GET_LATCHED_DATA_INDEX\n");
+					// Get latch data index command is complete.
+					if(debugMsgActive) printf("Proc cmd GET_LATCHED_DATA_INDEX\n");
 
-						// Two bytes have to be output.
+					// Two bytes have to be output.
 
-						// Null terminate the input string.
-						inputBuffer[5] = 0;
+					// Null terminate the input string.
+					inputBuffer[4] = 0;
 
-						// Return latched data index.
-						outputBuffer[outputBufferWritePosn++] = getLatchedDataIndex(inputBuffer + 1);
-					}
+					// Return latched data index.
+					outputBuffer[outputBufferWritePosn++] = getLatchedDataIndex(inputBuffer + 1);
+
 					break;
 
 				case GET_LATCHED_DATA_RESOLUTION:
 
-					if(inputBufferPosn == 3)
-					{
-						// Command is complete.
-						if(debugMsgActive) printf("Proc cmd GET_LATCHED_DATA_RESOLUTION\n");
+					// Command is complete.
+					if(debugMsgActive) printf("Proc cmd GET_LATCHED_DATA_RESOLUTION\n");
 
-						// Three bytes have to be output.
+					// Three bytes have to be output.
 
-						int latchedDataIndex = inputBuffer[1];
-						int latchedDataResolution = getLatchedDataResolution(latchedDataIndex);
+					latchedDataIndex = inputBuffer[1];
+					int latchedDataResolution = getLatchedDataResolution(latchedDataIndex);
 
-						// Latched data. Little endian byte order.
-						outputBuffer[outputBufferWritePosn++] = latchedDataResolution & 0xFF;
-						outputBuffer[outputBufferWritePosn++] = (latchedDataResolution >> 8) & 0xFF;
-					}
+					// Latched data. Little endian byte order.
+					outputBuffer[outputBufferWritePosn++] = latchedDataResolution & 0xFF;
+					outputBuffer[outputBufferWritePosn++] = (latchedDataResolution >> 8) & 0xFF;
+
 					break;
 
 				case GET_LATCHED_DATA:
 
-					if(inputBufferPosn == 3)
-					{
-						// Command is complete.
-						if(debugMsgActive) printf("Proc cmd GET_LATCHED_DATA\n");
+					// Command is complete.
+					if(debugMsgActive) printf("Proc cmd GET_LATCHED_DATA\n");
 
-						// Five bytes have to be output.
+					// Five bytes have to be output.
 
-						int latchedDataIndex = inputBuffer[1];
-						int latchedDataVal = latchedData[latchedDataIndex];
+					latchedDataIndex = inputBuffer[1];
+					int latchedDataVal = latchedData[latchedDataIndex];
 
-						// Latched data. Little endian byte order.
-						outputBuffer[outputBufferWritePosn++] = latchedDataVal & 0xFF;
-						outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 8) & 0xFF;
-						outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 16) & 0xFF;
-						outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 24) & 0xFF;
-					}
+					// Latched data. Little endian byte order.
+					outputBuffer[outputBufferWritePosn++] = latchedDataVal & 0xFF;
+					outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 8) & 0xFF;
+					outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 16) & 0xFF;
+					outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 24) & 0xFF;
+
 					break;
 
 				default:
