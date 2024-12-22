@@ -35,6 +35,8 @@ int main()
 	// For now run the SPI comms on core 0.
 	spiLatchStartSubsystem();
 
+	printf("Pico has initialised.\n");
+
 	// Main processing loop.
 	while(1)
 	{

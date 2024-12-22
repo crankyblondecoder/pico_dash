@@ -63,6 +63,8 @@ void __not_in_flash_func(processSpiCommandResponse)()
 	// Indicate ready for command.
 	setReadyForCommand(true);
 
+	//if(debugMsgActive) printf("Ready for command.\n");
+
 	// Read a command frame from the SPI rx fifo. Assume rx data is padded with 0's while master is waiting for a reply
 	// to the command.
 	inputBufferPosn = 0;
@@ -85,11 +87,17 @@ void __not_in_flash_func(processSpiCommandResponse)()
 		else
 		{
 			// Check for timeout.
-			timeout = get_absolute_time() > timeoutTime;
+			absolute_time_t curTime = get_absolute_time();
+			timeout = curTime > timeoutTime;
+
+			if(debugMsgActive && timeout)
+			{
+				printf("Timeout during latch command read. Timeout time: %lu  Current time: %lu\n", timeoutTime, curTime);
+			}
 		}
 	}
 
-	if(debugMsgActive && timeout) printf("Timeout during latch command read.");
+	//if(debugMsgActive && !timeout) printf("Latch command finished read.\n");
 
 	// Always reset output buffer read position.
 	outputBufferReadPosn = 0;
@@ -171,7 +179,7 @@ void __not_in_flash_func(processSpiCommandResponse)()
 				outputBufferWritePosn = 0;
 				while(outputBufferWritePosn++ < SPI_COMMAND_RESPONSE_FRAME_SIZE) outputBuffer[outputBufferWritePosn] = 0xFF;
 
-				if(debugMsgActive) ("Unknown SPI command 0x%X", inputBuffer[0]);
+				if(debugMsgActive) printf("Unknown SPI command 0x%X\n", inputBuffer[0]);
 		}
 
 		commandReplyReady = true;
@@ -186,8 +194,10 @@ void __not_in_flash_func(processSpiCommandResponse)()
 	{
 		if(debugMsgActive && !(spi0_hw -> sr & SPI_SSPSR_TFE_BITS))
 		{
-			printf("Warning: Latch command transmit FIFO was not empty.");
+			printf("Warning: Latch command transmit FIFO was not empty.\n");
 		}
+
+		//if(debugMsgActive) printf("Writing command reply.\n");
 
 		// Write as much as possible from output buffer to SPI tx fifo.
 		while(outputBufferReadPosn < SPI_COMMAND_RESPONSE_FRAME_SIZE && spiLatchCommandActive &&
@@ -198,6 +208,8 @@ void __not_in_flash_func(processSpiCommandResponse)()
 
 		// This should indicate to the master that it can start to read the command response.
 		setReadyForCommand(false);
+
+		//if(debugMsgActive) printf("Master can read command response.\n");
 
 		timeoutTime = make_timeout_time_ms(1);
 
@@ -215,7 +227,8 @@ void __not_in_flash_func(processSpiCommandResponse)()
 			}
 		}
 
-		if(debugMsgActive && timeout) printf("Timeout during latch command reply.");
+		if(debugMsgActive && timeout) printf("Timeout during latch command reply.\n");
+		//if(debugMsgActive && !timeout) printf("Latch command finished read.\n");
 	}
 }
 
