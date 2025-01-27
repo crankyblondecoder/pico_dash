@@ -9,9 +9,6 @@
 #include "pico_dash_latch.h"
 #include "pico_dash_spi_latch.h"
 
-/** Currently latched data. */
-int latchedData[MAX_LATCHED_INDEXES];
-
 bool debugMsgActive = true;
 
 /**
@@ -29,10 +26,16 @@ int main()
 	// Must happen for serial stdout to work.
 	stdio_init_all();
 
+	// General latcher initialisation. Must be done before latcher start.
+	initLatcher();
+
+	// Start the latcher on core 1.
+	startLatcher();
+
 	// Must be done before SPI start.
 	initGpioIrqSubsystem();
 
-	// For now run the SPI comms on core 0.
+	// Run the SPI comms on core 0.
 	spiLatchStartSubsystem();
 
 	printf("Pico has initialised.\n");

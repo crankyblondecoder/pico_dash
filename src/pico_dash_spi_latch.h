@@ -62,11 +62,10 @@ enum SpiCommand
 	 *
 	 *     Incoming data payload:
 	 *                            1 byte command.
-	 *                            1 byte that is the request id.
 	 *                            3 characters (bytes) which represents the latched data index name.
 	 *
 	 *     Outgoing data payload:
-	 *                            1 byte that is the request id supplied from the incoming data payload.
+	 *                            1 byte that is the command supplied from the incoming data payload.
 	 *                            1 byte that contains the latched data index. -1 Indicates an error condition.
 	 */
 	GET_LATCHED_DATA_INDEX = 0xF1,
@@ -80,11 +79,10 @@ enum SpiCommand
 	 *
 	 *     Incoming data payload:
 	 *                            1 byte command.
-	 *                            1 byte that is the request id.
 	 *                            1 byte that contains the latched data index to get the resolution for.
 	 *
 	 *     Outgoing data payload:
-	 *                            1 byte that is the request id supplied from the incoming data payload.
+	 *                            1 byte that is the command supplied from the incoming data payload.
 	 *                            16 bit integer (2 bytes). Byte order, little endian (ie lowest order byte first).
 	 */
 	GET_LATCHED_DATA_RESOLUTION = 0xF2,
@@ -94,14 +92,28 @@ enum SpiCommand
 	 *
 	 *     Incoming data payload:
 	 *                            1 byte command.
-	 *                            1 byte that is the request id.
 	 *                            1 byte that contains the latched data index to return.
 	 *
 	 *     Outgoing data payload:
-	 *                            1 byte that is the request id supplied from the incoming data payload.
+	 *                            1 byte that is the command supplied from the incoming data payload.
 	 *                            32 bit integer (4 bytes). Byte order, little endian (ie lowest order byte first).
 	 */
-	GET_LATCHED_DATA = 0xF3
+	GET_LATCHED_DATA = 0xF3,
+
+	/**
+	 * Set sensor data value.
+	 *
+	 *     Incoming data payload:
+	 *                            1 byte command.
+	 *                            1 byte that contains the latched data index that the sensor populates.
+	 *                            1 byte that contains the sensor data id (enum SensorData).
+	 *                            32 bit integer (4 bytes). Byte order, little endian (ie lowest order byte first).
+	 *
+	 *     Outgoing data payload:
+	 *                            1 byte that is the command supplied from the incoming data payload.
+	 *                            1 byte indicating an error code. 0 indicates no error.
+	 */
+	SET_SENSOR_DATA = 0xF4
 };
 
 /**

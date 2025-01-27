@@ -7,8 +7,6 @@
 #include "pico_dash_spi_latch.h"
 #include "pico_dash_latch.h"
 
-extern int latchedData[];
-
 extern bool debugMsgActive;
 
 /** Input buffer to read into. */
@@ -140,7 +138,6 @@ void __not_in_flash_func(processSpiCommandResponse)()
 
 			case GET_LATCHED_DATA_RESOLUTION:
 
-				// Command is complete.
 				if(debugMsgActive) printf("Proc cmd GET_LATCHED_DATA_RESOLUTION\n");
 
 				// Three bytes have to be output.
@@ -156,19 +153,38 @@ void __not_in_flash_func(processSpiCommandResponse)()
 
 			case GET_LATCHED_DATA:
 
-				// Command is complete.
 				if(debugMsgActive) printf("Proc cmd GET_LATCHED_DATA\n");
 
 				// Five bytes have to be output.
 
 				latchedDataIndex = inputBuffer[1];
-				int latchedDataVal = latchedData[latchedDataIndex];
+				int latchedDataVal = getLatchedData(latchedDataIndex);
 
 				// Latched data. Little endian byte order.
 				outputBuffer[outputBufferWritePosn++] = latchedDataVal & 0xFF;
 				outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 8) & 0xFF;
 				outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 16) & 0xFF;
 				outputBuffer[outputBufferWritePosn++] = (latchedDataVal >> 24) & 0xFF;
+
+				break;
+
+			case SET_SENSOR_DATA:
+
+				if(debugMsgActive) printf("Proc cmd SET_SENSOR_DATA\n");
+
+				latchedDataIndex = inputBuffer[1];
+				int sensorIndex = inputBuffer[2];
+
+				int sensorDataVal = inputBuffer[3];
+				int scratch = inputBuffer[4];
+				sensorDataVal += scratch << 8;
+				scratch = inputBuffer[5];
+				sensorDataVal += scratch << 16;
+				scratch = inputBuffer[6];
+				sensorDataVal += scratch << 24;
+
+				// Just reply with the inverted success value so that 0 indicates no error.
+				outputBuffer[outputBufferWritePosn++] = !setSensorData(latchedDataIndex, sensorIndex, sensorDataVal);
 
 				break;
 
